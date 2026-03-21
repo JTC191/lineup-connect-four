@@ -1,6 +1,8 @@
-﻿class GameMenu
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+class GameMenu
 {
-    public static int PromptForMenuOption(string userRequest)
+    public static int PromptForMenuOption(string userRequest, int minOption, int maxOption)
     {
         int menuOption;
 
@@ -9,21 +11,22 @@
             Console.WriteLine(userRequest);
             Console.WriteLine();
             Console.Write("> ");
-
-            if (int.TryParse(Console.ReadLine(), out menuOption))
+           
+            // Validate that the input is an integer within the allowed menu range.
+            if (int.TryParse(Console.ReadLine(), out menuOption) && 
+                menuOption >= minOption && menuOption <= maxOption)
             {
-                if (menuOption == 1 || menuOption == 2)
-                {
-                    Console.WriteLine();
-                    return menuOption;
-                }
+                Console.WriteLine();
+                return menuOption;
             }
 
             Console.WriteLine("Invalid input. Please try again.");
             Console.WriteLine();
         }
     }
-    public static int PromptForNumber(string userRequest)
+
+    // Validate that the input is an integer greater than or equal to the required minimum.
+    public static int PromptForNumber(string userRequest, int minValue) 
     {
         int value;
 
@@ -32,13 +35,13 @@
             Console.WriteLine(userRequest);
             Console.Write("> ");
 
-            if (int.TryParse(Console.ReadLine(), out value))
+            if (int.TryParse(Console.ReadLine(), out value) && value >= minValue)
             {
                 Console.WriteLine();
                 return value;
             }
 
-            Console.WriteLine("Invalid input. Please enter a number.");
+            Console.WriteLine($"Invalid input. Please enter a number. Please enter a number greater than or equal to {minValue}.");
             Console.WriteLine();
         }
     }
@@ -46,10 +49,11 @@
 
 class Grid
 {
+    private char[,] cells; 
     public int Rows { get; }
-    public int Cols { get; }
+    public int Columns { get; }
 
-    public Grid(int rows, int cols)
+    public Grid(int rows, int cols) // Enforce valid grid dimensions when a Grid is created
     {
         if (rows < 6)
             throw new ArgumentException("Rows must be at least 6.");
@@ -61,22 +65,81 @@ class Grid
             throw new ArgumentException("Grid cannot have more rows than columns.");
         
         Rows = rows;
-        Cols = cols;
+        Columns = cols;
+
+        cells = new char[Rows, Columns];
+
+        for (int i =0; i < Rows; i++)
+        {
+            for (int j=0; j < Columns; j++)
+            {
+                cells[i, j] = ' ';
+            }
+        }
+    }
+    public void Display()
+    {
+        // Displays the grid based on row and column dimensions
+        for (int i =0; i<cells.GetLength(0); i++)
+        {
+            for (int j = 0; j < cells.GetLength(1); j++)
+            {
+                Console.Write($"| {cells[i, j]} ");
+            }
+            Console.WriteLine("|");
+        }
+    }
+
+    public bool DropDisc(int column, char discSymbol)
+    {
+        int colIndex = column - 1;
+
+        for (int row = Rows - 1; row >= 0; row--)
+        {
+            if (cells[row , colIndex] == ' ')
+            {
+                cells[row, colIndex] = discSymbol;
+                return true;
+            }
+        }
+        return false;
     }
 }
+
 class Program
 {
     static void Main()
     {
-        int mainChoice = GameMenu.PromptForMenuOption("Press 1. Load Game\nPress 2. New Game");
+        int mainChoice = GameMenu.PromptForMenuOption("Press 1. Load Game\nPress 2. New Game", 1, 2);
 
-        if (mainChoice == 2)
+        if (mainChoice == 1)
         {
-            int gameMode = GameMenu.PromptForMenuOption("Press 1. Human vs Human\nPress 2. Human vs Computer");
-            int rows = GameMenu.PromptForNumber("Enter number of rows (minimum 6)");
-            int cols = GameMenu.PromptForNumber("Enter number of columns (minimum 7)");
+            Console.WriteLine("Load game not implemented yet.");
+        }
+        else
+        {
+            int gameMode = GameMenu.PromptForMenuOption("Press 1. Human vs Human\nPress 2. Human vs Computer", 1, 2);
 
-            Grid grid = new Grid(rows, cols);
+            Grid grid = null;
+
+            // Keep prompting until valid dimensions are entered.
+            while (grid == null)
+            {
+                int rows = GameMenu.PromptForNumber("Enter number of rows (minimum 6)", 6);
+                int columns = GameMenu.PromptForNumber("Enter number of columns (minimum 7)", 7);
+
+                try
+                {
+                    grid = new Grid(rows, columns);
+                    grid.DropDisc(1, '@');
+                    grid.Display(); 
+                }
+                catch (ArgumentException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine();
+                }
+            }
         }
     }
 }
