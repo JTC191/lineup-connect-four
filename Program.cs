@@ -89,11 +89,12 @@ class Grid
             Console.WriteLine("|");
         }
     }
-
     public bool DropDisc(int column, char discSymbol)
     {
-        int colIndex = column - 1;
+        // Convert from 1-based column input to 0-based array index
+        int colIndex = column - 1; 
 
+        // Starts from bottom row and moves upward
         for (int row = Rows - 1; row >= 0; row--)
         {
             if (cells[row , colIndex] == ' ')
@@ -104,11 +105,29 @@ class Grid
         }
         return false;
     }
+
+    public bool CheckDraw()
+    {
+        for (int row = Rows - 1; row >=0; row--)
+        {
+            for (int i =0; i < Columns; i++)
+            {
+                if (cells[row, i] == ' ')
+                {
+                    return false;
+                }
+
+            }   
+        }
+
+        return true;
+    }
 }
 
 class Program
 {
     static void Main()
+
     {
         int mainChoice = GameMenu.PromptForMenuOption("Press 1. Load Game\nPress 2. New Game", 1, 2);
 
@@ -118,11 +137,13 @@ class Program
         }
         else
         {
+            bool gameOver = false;
             int gameMode = GameMenu.PromptForMenuOption("Press 1. Human vs Human\nPress 2. Human vs Computer", 1, 2);
 
             Grid grid = null;
 
             // Keep prompting until valid dimensions are entered.
+
             while (grid == null)
             {
                 int rows = GameMenu.PromptForNumber("Enter number of rows (minimum 6)", 6);
@@ -131,14 +152,45 @@ class Program
                 try
                 {
                     grid = new Grid(rows, columns);
-                    grid.DropDisc(1, '@');
-                    grid.Display(); 
                 }
                 catch (ArgumentException ex)
                 {
                     Console.WriteLine(ex.Message);
                     Console.WriteLine();
                 }
+            }
+
+            char tracker = '@'; 
+
+            while (!gameOver)
+            {
+                Console.Clear();
+                grid.Display();
+                Console.WriteLine($"Turn is {tracker}");
+
+                bool validInput = false;
+
+                while (!validInput)
+                {
+                    int columnNumber = GameMenu.PromptForNumber("Enter column number", 1);
+                    
+                    if (columnNumber > grid.Columns)
+                    {
+                        Console.WriteLine($"Invalid column. Try between 1 and {grid.Columns}");
+                        continue;
+                    }
+
+                    validInput = grid.DropDisc(columnNumber, tracker);
+
+                    if (!validInput)
+                    {
+                        Console.WriteLine("The column is full. Try again.");
+                    }
+
+                }
+                if (tracker == '@') { tracker = '#'; }
+                else { tracker = '@';  }
+                
             }
         }
     }
