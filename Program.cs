@@ -12,7 +12,7 @@ class GameMenu
             Console.WriteLine();
             Console.Write("> ");
            
-            // Validate that the input is an integer within the allowed menu range.
+            // Ensure the user enters an integer within the allowed menu range
             if (int.TryParse(Console.ReadLine(), out menuOption) && 
                 menuOption >= minOption && menuOption <= maxOption)
             {
@@ -25,7 +25,7 @@ class GameMenu
         }
     }
 
-    // Validate that the input is an integer greater than or equal to the required minimum.
+    // Ensure the user enters an integer greater than or equal to the required minimum.
     public static int PromptForNumber(string userRequest, int minValue) 
     {
         int value;
@@ -53,7 +53,9 @@ class Grid
     public int Rows { get; }
     public int Columns { get; }
 
-    public Grid(int rows, int cols) // Enforce valid grid dimensions when a Grid is created
+    private int WinCondition;
+
+    public Grid(int rows, int cols) // Validate grid dimensions when constructing a new grid.
     {
         if (rows < 6)
             throw new ArgumentException("Rows must be at least 6.");
@@ -67,6 +69,8 @@ class Grid
         Rows = rows;
         Columns = cols;
 
+        WinCondition = (int)Math.Floor(Rows * Columns * 0.1); 
+
         cells = new char[Rows, Columns];
 
         for (int i =0; i < Rows; i++)
@@ -79,7 +83,7 @@ class Grid
     }
     public void Display()
     {
-        // Displays the grid based on row and column dimensions
+        // Prints the grid row-by-row with vertical borders for each cell
         for (int i =0; i<cells.GetLength(0); i++)
         {
             for (int j = 0; j < cells.GetLength(1); j++)
@@ -91,10 +95,10 @@ class Grid
     }
     public bool DropDisc(int column, char discSymbol)
     {
-        // Convert from 1-based column input to 0-based array index
+        // Convert the user's 1-based column input to a 0-based array index.
         int colIndex = column - 1; 
 
-        // Starts from bottom row and moves upward
+        // Start from the bottom row to simulate gravity.
         for (int row = Rows - 1; row >= 0; row--)
         {
             if (cells[row , colIndex] == ' ')
@@ -105,22 +109,117 @@ class Grid
         }
         return false;
     }
-
+    // Return true only when there are no empty cells left in the grid
     public bool CheckDraw()
     {
         for (int row = Rows - 1; row >=0; row--)
         {
-            for (int i =0; i < Columns; i++)
+            for (int col = 0; col <= Columns; col ++)
             {
-                if (cells[row, i] == ' ')
+                if (cells[row, col] == ' ')
                 {
                     return false;
                 }
 
             }   
         }
-
         return true;
+    }
+
+    public bool CheckWin(char disc)
+    {
+        // Check each row for a horizontal sequence of matching discs
+        for (int row = 0; row < Rows; row++)
+        {
+            // Only check starting columns where a full sequence fits.
+            for (int col = 0; col <= Columns - WinCondition; col++)
+            {
+                bool match = true; // Assume a winning sequence unless proven otherwise
+
+                for (int i = 0; i < WinCondition; i++)
+                {
+                    if (cells[row, col + i] != disc)
+                    {
+                        match = false; // One mismatch means starting position is not a win.
+                        break;
+                    }
+                }
+                if (match)
+                {
+                    return true;
+                }
+            }
+        }
+        // Check each column for a vertical winning sequence
+        for (int col = 0; col < Columns; col++)
+        {
+            // Only check starting rows where a full sequence can fit within the grid
+            for (int row = 0; row <= Rows - WinCondition; row++)
+            {
+                bool match = true;
+
+                for (int i = 0; i < WinCondition; i++)
+                {
+                    if (cells[row + i, col] != disc)
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match)
+                {
+                    return true;
+                }
+            }
+        }
+        
+        // Check diagonal down-right (only valid starting positions where a full sequence fits)
+        for (int row = 0; row <= Rows - WinCondition; row++) 
+        {
+            for (int col = 0; col <= Columns - WinCondition; col++) 
+            {
+                bool match = true;
+
+                for (int i = 0; i < WinCondition; i++)
+                {
+                    if (cells[row + i, col+i] != disc)
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match)
+                {
+                    return true;
+                }
+            }
+        }
+
+        // Check diagonal up-right (only valid starting positions where a full sequence fits)
+        for (int row = WinCondition - 1; row < Rows; row++) 
+        {
+            for (int col = 0; col <= Columns - WinCondition; col++) 
+            {
+                bool match = true;
+
+                for (int i = 0; i < WinCondition; i++)
+                {
+                    if (cells[row - i, col + i] != disc)
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;        
     }
 }
 
@@ -142,8 +241,7 @@ class Program
 
             Grid grid = null;
 
-            // Keep prompting until valid dimensions are entered.
-
+            // Keep asking for dimensions until a valid grid can be created.
             while (grid == null)
             {
                 int rows = GameMenu.PromptForNumber("Enter number of rows (minimum 6)", 6);
@@ -162,6 +260,7 @@ class Program
 
             char tracker = '@'; 
 
+            // Main game loop: display board, process player input, update state, swtich turns
             while (!gameOver)
             {
                 Console.Clear();
@@ -170,6 +269,7 @@ class Program
 
                 bool validInput = false;
 
+                // Keep asking until the player chooses a valid, non-full column.
                 while (!validInput)
                 {
                     int columnNumber = GameMenu.PromptForNumber("Enter column number", 1);
@@ -186,11 +286,35 @@ class Program
                     {
                         Console.WriteLine("The column is full. Try again.");
                     }
-
                 }
-                if (tracker == '@') { tracker = '#'; }
-                else { tracker = '@';  }
-                
+
+                if (grid.CheckWin(tracker))
+                {
+                    gameOver = true;
+                    Console.Clear();
+                    grid.Display();
+                    if (tracker == '@')
+                    {
+                       Console.WriteLine($"Player 1 wins!");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Player 2 wins!");
+                    }
+                   
+                }
+
+                else if (grid.CheckDraw())
+                {
+                    gameOver = true;
+                    Console.WriteLine("Game is a draw");
+                }
+
+                else
+                {
+                    if (tracker == '@') { tracker = '#'; }
+                    else { tracker = '@'; }
+                }                     
             }
         }
     }
