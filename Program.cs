@@ -114,7 +114,7 @@ class Grid
     {
         for (int row = Rows - 1; row >=0; row--)
         {
-            for (int col = 0; col <= Columns; col ++)
+            for (int col = 0; col < Columns; col ++)
             {
                 if (cells[row, col] == ' ')
                 {
@@ -223,99 +223,135 @@ class Grid
     }
 }
 
-class Program
+class Game
 {
-    static void Main()
+    private Grid grid;
+    private char currentPlayer;
+    private int gameMode;
+    private bool gameOver;
 
+    public Game(int rows, int columns, int selectedGameMode)
     {
-        int mainChoice = GameMenu.PromptForMenuOption("Press 1. Load Game\nPress 2. New Game", 1, 2);
+        grid = new Grid(rows, columns);
+        currentPlayer = '@';
+        gameMode = selectedGameMode;
+        gameOver = false;
+    }
 
-        if (mainChoice == 1)
+    public void Run()
+    {
+
+        // Main game loop runs until a win or draw condition is met
+        while (!gameOver)
         {
-            Console.WriteLine("Load game not implemented yet.");
-        }
-        else
-        {
-            bool gameOver = false;
-            int gameMode = GameMenu.PromptForMenuOption("Press 1. Human vs Human\nPress 2. Human vs Computer", 1, 2);
+            Console.Clear();
+            grid.Display();
+            Console.WriteLine($"Turn is {currentPlayer}");
 
-            Grid grid = null;
+            HandleTurn();
 
-            // Keep asking for dimensions until a valid grid can be created.
-            while (grid == null)
-            {
-                int rows = GameMenu.PromptForNumber("Enter number of rows (minimum 6)", 6);
-                int columns = GameMenu.PromptForNumber("Enter number of columns (minimum 7)", 7);
-
-                try
-                {
-                    grid = new Grid(rows, columns);
-                }
-                catch (ArgumentException ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    Console.WriteLine();
-                }
-            }
-
-            char tracker = '@'; 
-
-            // Main game loop: display board, process player input, update state, swtich turns
-            while (!gameOver)
+            if (grid.CheckWin(currentPlayer))
             {
                 Console.Clear();
                 grid.Display();
-                Console.WriteLine($"Turn is {tracker}");
-
-                bool validInput = false;
-
-                // Keep asking until the player chooses a valid, non-full column.
-                while (!validInput)
-                {
-                    int columnNumber = GameMenu.PromptForNumber("Enter column number", 1);
-                    
-                    if (columnNumber > grid.Columns)
-                    {
-                        Console.WriteLine($"Invalid column. Try between 1 and {grid.Columns}");
-                        continue;
-                    }
-
-                    validInput = grid.DropDisc(columnNumber, tracker);
-
-                    if (!validInput)
-                    {
-                        Console.WriteLine("The column is full. Try again.");
-                    }
-                }
-
-                if (grid.CheckWin(tracker))
-                {
-                    gameOver = true;
-                    Console.Clear();
-                    grid.Display();
-                    if (tracker == '@')
-                    {
-                       Console.WriteLine($"Player 1 wins!");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Player 2 wins!");
-                    }
-                   
-                }
-
-                else if (grid.CheckDraw())
-                {
-                    gameOver = true;
-                    Console.WriteLine("Game is a draw");
-                }
-
-                else
-                {
-                    if (tracker == '@') { tracker = '#'; }
-                    else { tracker = '@'; }
-                }                     
+                Console.WriteLine($"Player {currentPlayer} wins!");
+                gameOver = true;
+            }
+            else if (grid.CheckDraw())
+            {
+                Console.Clear();
+                grid.Display();
+                Console.WriteLine("Game is a draw!");
+                gameOver = true;
+            }
+            else
+            {
+                SwitchPlayer();
             }
         }
+    }
+
+    private void SwitchPlayer()
+    {
+        if (currentPlayer == '@')
+        {
+            currentPlayer = '#';
+        }
+        else
+        {
+            currentPlayer = '@';
+        }
+    }
+
+    private void MakeMove()
+    {
+        bool validInput = false;
+
+        // Keep prompting until the player chooses a valid, non-full column.
+        while (!validInput)
+        {
+            int columnNumber = GameMenu.PromptForNumber("Enter column number", 1);
+                
+            // Check column is within bounds
+            if (columnNumber > grid.Columns)
+            {
+                Console.WriteLine($"Invalid column. Try between 1 and {grid.Columns}");
+                continue;
+            }
+
+            validInput = grid.DropDisc(columnNumber, currentPlayer);
+
+            if (!validInput)
+            {
+                Console.WriteLine("The column is full. Try again.");
+            }
+        }
+        
+    }
+
+    //Handles one player's turn until a valid move is made
+    private void HandleTurn()
+    {
+        bool turnComplete = false; 
+        
+        while (!turnComplete)
+        {
+            int userSelection = GameMenu.PromptForMenuOption("1. Make a move\n2. Save game\n3. Help", 1, 3);
+            if (userSelection == 1)
+            {
+                MakeMove();
+                turnComplete = true;
+            }
+
+            else if (userSelection == 2)
+            {
+                Console.WriteLine("Save feature not yet implemented");
+            }
+
+            else
+            {
+                Console.WriteLine("choose 1 to play a disc\nchoose 2 to save the current game\nchoose 3 to view help\nconnect enough discs in a line to win");
+                Console.WriteLine("");
+            }
+        }
+    }
+}
+class Program
+{
+   static void Main()
+    {
+        Console.WriteLine("Welcome to LineUp!");
+
+        int rows = GameMenu.PromptForNumber("Enter number of rows", 4);
+        int columns = GameMenu.PromptForNumber("Enter number of columns", 4);
+
+        int gameMode = GameMenu.PromptForMenuOption(
+            "Choose game mode:\n1. Human vs Human\n2. Human vs Computer",
+            1,
+            2
+        );
+
+        Game game = new Game(rows, columns, gameMode);
+        game.Run();
     }
 }
