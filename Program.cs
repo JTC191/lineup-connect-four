@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-class GameMenu
+﻿class GameMenu
 {
     public static int PromptForMenuOption(string userRequest, int minOption, int maxOption)
     {
@@ -20,8 +18,7 @@ class GameMenu
                 return menuOption;
             }
 
-            Console.WriteLine("Invalid input. Please try again.");
-            Console.WriteLine();
+            Console.WriteLine("Invalid input. Please try again.\n");
         }
     }
 
@@ -41,8 +38,9 @@ class GameMenu
                 return value;
             }
 
-            Console.WriteLine($"Invalid input. Please enter a number. Please enter a number greater than or equal to {minValue}.");
             Console.WriteLine();
+            Console.WriteLine($"Invalid input. Please enter a number. Please enter a number greater than or equal to {minValue}.\n");
+
         }
     }
 }
@@ -240,7 +238,6 @@ class Game
 
     public void Run()
     {
-
         // Main game loop runs until a win or draw condition is met
         while (!gameOver)
         {
@@ -317,6 +314,8 @@ class Game
         while (!turnComplete)
         {
             int userSelection = GameMenu.PromptForMenuOption("1. Make a move\n2. Save game\n3. Help", 1, 3);
+            Console.WriteLine("");
+
             if (userSelection == 1)
             {
                 MakeMove();
@@ -335,23 +334,102 @@ class Game
             }
         }
     }
+
+    public void RunTestMode(string moveSequence)
+    {
+        Console.WriteLine($"Testing sequence: {moveSequence}");
+
+        string[] testingInput = moveSequence.Split(',');
+
+        foreach (string rawInput in testingInput)
+        {
+            string inputItem = rawInput.Trim(); 
+
+            if (inputItem.Length < 2)
+            {
+                Console.WriteLine($"Invalid input: {inputItem}");
+                return;
+            }
+
+            char discType = char.ToUpper(inputItem[0]);
+
+            if (discType != 'O')
+            {
+                Console.WriteLine("Only ordinary discs supported in test mode so far.");
+                return;
+            }
+
+            // Accounts for if column number is greater than 10
+            string columnText = inputItem.Substring(1);
+
+            int columnNumber;
+            if (!int.TryParse(columnText, out columnNumber))
+            {
+                Console.WriteLine($"Invalid column: {columnText}");
+                return;
+            }
+
+            if (columnNumber < 1 || columnNumber > grid.Columns)
+            {
+                Console.WriteLine($"Column out of bounds: {columnNumber}");
+                return;
+            }
+
+            bool success = grid.DropDisc(columnNumber, currentPlayer);
+
+            if (!success)
+            {
+                Console.WriteLine($"Column {columnNumber} is full.");
+                return;
+            }
+
+            Console.Clear();
+            grid.Display();
+            Console.WriteLine();
+
+            if (grid.CheckWin(currentPlayer))
+            {
+                Console.WriteLine($"Player {currentPlayer} wins!");
+                return;
+            }
+
+            if (grid.CheckDraw())
+            {
+                Console.WriteLine("Game is a draw!");
+                return;
+            }
+
+            SwitchPlayer();
+        }
+    }
 }
 class Program
 {
    static void Main()
-    {
-        Console.WriteLine("Welcome to LineUp!");
+   {
+       Console.WriteLine("Welcome to LineUp!\n");
 
-        int rows = GameMenu.PromptForNumber("Enter number of rows", 4);
-        int columns = GameMenu.PromptForNumber("Enter number of columns", 4);
+       int rows = GameMenu.PromptForNumber("Enter number of rows", 6);
+       int columns = GameMenu.PromptForNumber("Enter number of columns", 7);
 
-        int gameMode = GameMenu.PromptForMenuOption(
-            "Choose game mode:\n1. Human vs Human\n2. Human vs Computer",
-            1,
-            2
-        );
+       int gameMode = GameMenu.PromptForMenuOption(
+           "Choose game mode:\n1. Human vs Human\n2. Human vs Computer\n3. Testing Mode",
+           1,
+           3
+       );
 
-        Game game = new Game(rows, columns, gameMode);
-        game.Run();
-    }
+       Game game = new Game(rows, columns, gameMode);
+       
+       if (gameMode == 3)
+       {
+            Console.WriteLine("Enter testing sequence: ");
+            string sequence = Console.ReadLine();
+            game.RunTestMode(sequence);
+       }
+       else
+       {
+           game.Run();
+       }
+       
+   }
 }
