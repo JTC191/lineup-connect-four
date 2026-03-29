@@ -1,4 +1,5 @@
-﻿class GameMenu
+﻿using System.Threading;
+class GameMenu
 {
     public static int PromptForMenuOption(string userRequest, int minOption, int maxOption)
     {
@@ -91,22 +92,7 @@ class Grid
             Console.WriteLine("|");
         }
     }
-    public bool DropDisc(int column, char discSymbol)
-    {
-        // Convert the user's 1-based column input to a 0-based array index.
-        int colIndex = column - 1; 
-
-        // Start from the bottom row to simulate gravity.
-        for (int row = Rows - 1; row >= 0; row--)
-        {
-            if (cells[row , colIndex] == ' ')
-            {
-                cells[row, colIndex] = discSymbol;
-                return true;
-            }
-        }
-        return false;
-    }
+   
     // Return true only when there are no empty cells left in the grid
     public bool CheckDraw()
     {
@@ -219,6 +205,76 @@ class Grid
 
         return false;        
     }
+
+    public int DropDiscAndReturnRow(int column, char discSymbol)
+    {
+        int colIndex = column - 1;
+
+        for (int row = Rows - 1; row >=0; row--)
+        {
+            if (cells[row,colIndex]==' ')
+            {
+                cells[row, colIndex] = discSymbol;
+                return row;
+            }
+        }
+
+        return -1;
+    }
+
+    public void Explode(int row, int column)
+    {
+        for (int i = -1; i <= 1; i++)
+        {
+            for (int j = -1; j <= 1; j++)
+            {
+                // new bounds check if Exploding Disc placement is valid
+                int newRow = row + i;
+                int newCol = column + j;
+                if (newRow >= 0 && newRow < Rows && newCol >= 0 && newCol < Columns)
+                {
+                    if (cells[newRow, newCol] != ' ')
+                    {
+                        cells[newRow, newCol] = ' ';
+                    }
+                }
+            }
+        }
+    }
+
+    public void ApplyMagneticEffect(int row, int column, char player)
+    {
+        char ordinaryDisc;
+
+        if (player == '@')
+        {
+            ordinaryDisc = '@';
+        }
+        else
+        {
+            ordinaryDisc = '#';
+        }
+
+        cells[row, column] = ordinaryDisc;
+
+        if (row == 0)
+        {
+            return;
+        }
+
+        for (int r = row - 1; r >= 0; r--)
+        {
+            if (cells[r, column] == ordinaryDisc)
+            {
+                if (r != row - 1)
+                {
+                    cells[row - 1, column] = ordinaryDisc;
+                    cells[r, column] = ' ';
+                }
+                break;
+            }
+        }
+    }
 }
 
 class Game
@@ -243,7 +299,8 @@ class Game
         {
             Console.Clear();
             grid.Display();
-            Console.WriteLine($"Turn is {currentPlayer}");
+            Console.WriteLine($"\nTurn is {currentPlayer}\n");
+
 
             HandleTurn();
 
@@ -284,26 +341,50 @@ class Game
     {
         bool validInput = false;
 
-        // Keep prompting until the player chooses a valid, non-full column.
         while (!validInput)
         {
             int columnNumber = GameMenu.PromptForNumber("Enter column number", 1);
-                
-            // Check column is within bounds
-            if (columnNumber > grid.Columns)
+
+            if (columnNumber < 1 || columnNumber > grid.Columns)
             {
                 Console.WriteLine($"Invalid column. Try between 1 and {grid.Columns}");
                 continue;
             }
 
-            validInput = grid.DropDisc(columnNumber, currentPlayer);
+            char discType = PromptForDiscType();
+            char discSymbol = GetDiscSymbol(discType);
 
-            if (!validInput)
+            int row = grid.DropDiscAndReturnRow(columnNumber, discSymbol);
+
+            if (row == -1)
             {
                 Console.WriteLine("The column is full. Try again.");
             }
+            else
+            {
+                Console.Clear();
+                grid.Display();
+
+                if (discType == 'E')
+                {
+                    Thread.Sleep(1000);
+                    grid.Explode(row, columnNumber - 1);
+
+                    Console.Clear();
+                    grid.Display();
+                }
+                else if (discType == 'M')
+                {
+                    Thread.Sleep(1000);
+                    grid.ApplyMagneticEffect(row, columnNumber - 1, currentPlayer);
+
+                    Console.Clear();
+                    grid.Display();
+                }
+
+                validInput = true;
+            }
         }
-        
     }
 
     //Handles one player's turn until a valid move is made
@@ -353,13 +434,13 @@ class Game
 
             char discType = char.ToUpper(inputItem[0]);
 
-            if (discType != 'O')
+            if (discType != 'O' && discType != 'E' && discType != 'M')
             {
                 Console.WriteLine("Only ordinary discs supported in test mode so far.");
                 return;
             }
 
-            // Accounts for if column number is greater than 10
+            // Accounts for if column number is more than 2 digits
             string columnText = inputItem.Substring(1);
 
             int columnNumber;
@@ -375,9 +456,9 @@ class Game
                 return;
             }
 
-            bool success = grid.DropDisc(columnNumber, currentPlayer);
+            int row = grid.DropDiscAndReturnRow(columnNumber, currentPlayer);
 
-            if (!success)
+            if (row == -1)
             {
                 Console.WriteLine($"Column {columnNumber} is full.");
                 return;
@@ -401,6 +482,51 @@ class Game
 
             SwitchPlayer();
         }
+    }
+    private char PromptForDiscType()
+    {
+        while (true)
+        {
+            Console.WriteLine("Choose disc type:");
+            Console.WriteLine("O = Ordinary");
+            Console.WriteLine("E = Exploding");
+            Console.WriteLine("M = Magnetic");
+            Console.WriteLine("B = Boring");
+            Console.Write("> ");
+
+            string input = Console.ReadLine().Trim().ToUpper();
+
+            if (input == "O" || input == "E" || input == "M")
+            {
+                // Converts string -> char
+                return input[0];
+            }
+
+            Console.WriteLine("Invalid disc type. Please enter O, E, or M.\n");
+        }
+    }
+    private char GetDiscSymbol(char discType)
+    {
+        if (currentPlayer == '@')
+        {
+            switch (discType)
+            {
+                case 'O': return '@';
+                case 'E': return 'E';
+                case 'M': return 'M';
+            }
+        }
+        else
+        {
+            switch (discType)
+            {
+                case 'O': return '#';
+                case 'E': return 'e';
+                case 'M': return 'm';
+            }
+        }
+
+        throw new ArgumentException("Invalid disc type.");
     }
 }
 class Program
