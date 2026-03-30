@@ -1,4 +1,6 @@
-﻿using System.Threading;
+﻿using System.Runtime.CompilerServices;
+using System.Threading;
+using System.IO;
 class GameMenu
 {
     public static int PromptForMenuOption(string userRequest, int minOption, int maxOption)
@@ -275,6 +277,46 @@ class Grid
             }
         }
     }
+
+    public bool IsColumnFull(int column)
+    {
+        int colIndex = column - 1;
+        return cells[0, colIndex] != ' ';
+    }
+
+    public void UndoMove(int row, int column)
+    {
+        cells[row, column] = ' ';
+    }
+
+    public string[] GetGridLines()
+    {
+        string[] lines = new string[Rows];
+
+        for (int row = 0; row < Rows; row++)
+        {
+            char[] rowChars = new char[Columns];
+
+            for (int col = 0; col < Columns; col++)
+            {
+                rowChars[col] = cells[row, col];
+            }
+            lines[row] = new string(rowChars);
+        }
+
+        return lines;
+    }
+
+    public void LoadGridLines(string[] lines)
+    {
+        for (int row = 0; row < Rows; row++)
+        {
+            for (int col = 0; col < Columns; col++)
+            {
+                cells[row, col] = lines[row][col];
+            }
+        }
+    }
 }
 
 class Game
@@ -283,6 +325,11 @@ class Game
     private char currentPlayer;
     private int gameMode;
     private bool gameOver;
+
+    private int player1ExplodingUsed = 0;
+    private int player1MagneticUsed = 0;
+    private int player2ExplodingUsed = 0;
+    private int player2MagneticUsed = 0;
 
     public Game(int rows, int columns, int selectedGameMode)
     {
@@ -301,8 +348,15 @@ class Game
             grid.Display();
             Console.WriteLine($"\nTurn is {currentPlayer}\n");
 
+            if (gameMode == 2 && currentPlayer == '#')
+            {
+                MakeComputerMove();
+            }
 
-            HandleTurn();
+            else
+            {
+                HandleTurn(); 
+            }
 
             if (grid.CheckWin(currentPlayer))
             {
@@ -362,24 +416,31 @@ class Game
             }
             else
             {
+                if (discType == 'E')
+                {
+                    grid.Explode(row, columnNumber - 1);
+                }
+                else if (discType == 'M')
+                {
+                    grid.ApplyMagneticEffect(row, columnNumber - 1, currentPlayer);
+                }
+
                 Console.Clear();
                 grid.Display();
 
                 if (discType == 'E')
                 {
-                    Thread.Sleep(1000);
-                    grid.Explode(row, columnNumber - 1);
-
-                    Console.Clear();
-                    grid.Display();
+                    if (currentPlayer == '@')
+                        player1ExplodingUsed++;
+                    else
+                        player2ExplodingUsed++;
                 }
                 else if (discType == 'M')
                 {
-                    Thread.Sleep(1000);
-                    grid.ApplyMagneticEffect(row, columnNumber - 1, currentPlayer);
-
-                    Console.Clear();
-                    grid.Display();
+                    if (currentPlayer == '@')
+                        player1MagneticUsed++;
+                    else
+                        player2MagneticUsed++;
                 }
 
                 validInput = true;
@@ -405,7 +466,7 @@ class Game
 
             else if (userSelection == 2)
             {
-                Console.WriteLine("Save feature not yet implemented");
+                SaveGame();
             }
 
             else
@@ -434,9 +495,36 @@ class Game
 
             char discType = char.ToUpper(inputItem[0]);
 
+            if (discType == 'E')
+            {
+                if (currentPlayer == '@' && player1ExplodingUsed >= 2)
+                {
+                    Console.WriteLine("Player @ has no exploding discs left.");
+                    return;
+                }
+                if (currentPlayer == '#' && player2ExplodingUsed >= 2)
+                {
+                    Console.WriteLine("Player # has no exploding discs left.");
+                    return;
+                }
+            }
+            else if (discType == 'M')
+            {
+                if (currentPlayer == '@' && player1MagneticUsed >= 2)
+                {
+                    Console.WriteLine("Player @ has no magnetic discs left.");
+                    return;
+                }
+                if (currentPlayer == '#' && player2MagneticUsed >= 2)
+                {
+                    Console.WriteLine("Player # has no magnetic discs left.");
+                    return;
+                }
+            }
+
             if (discType != 'O' && discType != 'E' && discType != 'M')
             {
-                Console.WriteLine("Only ordinary discs supported in test mode so far.");
+                Console.WriteLine("Only ordinary/exploding/magnetic discs supported in test mode so far.");
                 return;
             }
 
@@ -456,14 +544,36 @@ class Game
                 return;
             }
 
-            int row = grid.DropDiscAndReturnRow(columnNumber, currentPlayer);
+            char discSymbol = GetDiscSymbol(discType);
+            int row = grid.DropDiscAndReturnRow(columnNumber, discSymbol);
 
             if (row == -1)
             {
                 Console.WriteLine($"Column {columnNumber} is full.");
                 return;
             }
-
+            if (discType == 'E')
+            {
+                grid.Explode(row, columnNumber - 1);
+            }
+            else if (discType == 'M')
+            {
+                grid.ApplyMagneticEffect(row, columnNumber - 1, currentPlayer);
+            }
+            if (discType == 'E')
+            {
+                if (currentPlayer == '@')
+                    player1ExplodingUsed++;
+                else
+                    player2ExplodingUsed++;
+            }
+            else if (discType == 'M')
+            {
+                if (currentPlayer == '@')
+                    player1MagneticUsed++;
+                else
+                    player2MagneticUsed++;
+            }
             Console.Clear();
             grid.Display();
             Console.WriteLine();
@@ -491,18 +601,38 @@ class Game
             Console.WriteLine("O = Ordinary");
             Console.WriteLine("E = Exploding");
             Console.WriteLine("M = Magnetic");
-            Console.WriteLine("B = Boring");
             Console.Write("> ");
 
             string input = Console.ReadLine().Trim().ToUpper();
 
-            if (input == "O" || input == "E" || input == "M")
+            if (input == "O")
             {
-                // Converts string -> char
-                return input[0];
+                return 'O';
             }
 
-            Console.WriteLine("Invalid disc type. Please enter O, E, or M.\n");
+            if (input == "E")
+            {
+                if (currentPlayer == '@' && player1ExplodingUsed < 2)
+                    return 'E';
+                if (currentPlayer == '#' && player2ExplodingUsed < 2)
+                    return 'E';
+
+                Console.WriteLine("No exploding discs left.\n");
+                continue;
+            }
+
+            if (input == "M")
+            {
+                if (currentPlayer == '@' && player1MagneticUsed < 2)
+                    return 'M';
+                if (currentPlayer == '#' && player2MagneticUsed < 2)
+                    return 'M';
+
+                Console.WriteLine("No magnetic discs left.\n");
+                continue;
+            }
+
+            Console.WriteLine("Invalid disc type.\n");
         }
     }
     private char GetDiscSymbol(char discType)
@@ -528,34 +658,143 @@ class Game
 
         throw new ArgumentException("Invalid disc type.");
     }
+
+    private List<int> GetValidColumns()
+    {
+        List<int> validColumns = new List<int>();
+
+        for (int col = 1; col <= grid.Columns; col++)
+        {
+            if (!grid.IsColumnFull(col))
+            {
+                validColumns.Add(col);
+            }
+        }
+
+        return validColumns;
+    }
+
+    private void MakeComputerMove()
+    {
+        List<int> validColumns = GetValidColumns();
+
+        int chosenColumn = -1;
+
+        foreach (int col in validColumns)
+        {
+            int row = grid.DropDiscAndReturnRow(col, currentPlayer);
+
+            if (grid.CheckWin(currentPlayer))
+            {
+                chosenColumn = col;
+                grid.UndoMove(row, col - 1); 
+                break;
+            }
+
+            grid.UndoMove(row, col - 1); 
+        }
+
+        if (chosenColumn == -1)
+        {
+            Random rand = new Random();
+            chosenColumn = validColumns[rand.Next(validColumns.Count)];
+        }
+
+        int finalRow = grid.DropDiscAndReturnRow(chosenColumn, currentPlayer);
+
+        Console.WriteLine($"Computer plays column {chosenColumn}");
+        Thread.Sleep(1000);
+
+        Console.Clear();
+        grid.Display();
+    }
+
+    private void SaveGame()
+    {
+        List<string> lines = new List<string>();
+        lines.Add(player1ExplodingUsed.ToString());
+        lines.Add(player1MagneticUsed.ToString());
+        lines.Add(player2ExplodingUsed.ToString());
+        lines.Add(player2MagneticUsed.ToString());
+
+        lines.Add(grid.Rows.ToString());
+        lines.Add(grid.Columns.ToString());
+        lines.Add(gameMode.ToString());
+        lines.Add(currentPlayer.ToString());
+
+        lines.AddRange(grid.GetGridLines());
+
+        File.WriteAllLines("savegame.txt", lines);
+
+        Console.WriteLine("Game saved.");
+    }
+
+    public static Game LoadGame(string fileName)
+    {
+        string[] lines = File.ReadAllLines(fileName);
+
+        int p1E = int.Parse(lines[0]);
+        int p1M = int.Parse(lines[1]);
+        int p2E = int.Parse(lines[2]);
+        int p2M = int.Parse(lines[3]);
+
+        int rows = int.Parse(lines[4]);
+        int columns = int.Parse(lines[5]);
+        int gameMode = int.Parse(lines[6]);
+        char currentPlayer = lines[7][0];
+
+
+        Game loadedGame = new Game(rows, columns, gameMode);
+        loadedGame.currentPlayer = currentPlayer;
+
+        loadedGame.player1ExplodingUsed = p1E;
+        loadedGame.player1MagneticUsed = p1M;
+        loadedGame.player2ExplodingUsed = p2E;
+        loadedGame.player2MagneticUsed = p2M;
+
+        string[] gridLines = new string[rows];
+        for (int i = 0; i < rows; i++)
+        {
+            gridLines[i] = lines[i + 8];
+        }
+
+        loadedGame.grid.LoadGridLines(gridLines);
+
+        return loadedGame;
+    }
 }
 class Program
 {
    static void Main()
    {
-       Console.WriteLine("Welcome to LineUp!\n");
+        Console.WriteLine("Welcome to LineUp!\n");
 
-       int rows = GameMenu.PromptForNumber("Enter number of rows", 6);
-       int columns = GameMenu.PromptForNumber("Enter number of columns", 7);
+        int startOption = GameMenu.PromptForMenuOption(
+            "1. New Game\n2. Load Game",
+            1,
+            2
+        );
 
-       int gameMode = GameMenu.PromptForMenuOption(
-           "Choose game mode:\n1. Human vs Human\n2. Human vs Computer\n3. Testing Mode",
-           1,
-           3
-       );
+        Game game;
 
-       Game game = new Game(rows, columns, gameMode);
-       
-       if (gameMode == 3)
-       {
-            Console.WriteLine("Enter testing sequence: ");
-            string sequence = Console.ReadLine();
-            game.RunTestMode(sequence);
-       }
-       else
-       {
-           game.Run();
-       }
-       
-   }
+        if (startOption == 2)
+        {
+            game = Game.LoadGame("savegame.txt");
+        }
+        else
+        {
+            int rows = GameMenu.PromptForNumber("Enter number of rows", 6);
+            int columns = GameMenu.PromptForNumber("Enter number of columns", 7);
+
+            int gameMode = GameMenu.PromptForMenuOption(
+                "Choose game mode:\n1. Human vs Human\n2. Human vs Computer\n3. Testing Mode",
+                1,
+                3
+            );
+            
+            game = new Game(rows, columns, gameMode);
+        }
+
+        game.Run();
+    }
 }
