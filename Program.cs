@@ -108,16 +108,16 @@ class Grid
     // Return true only when there are no empty cells left in the grid
     public bool CheckDraw()
     {
-        for (int row = Rows - 1; row >=0; row--)
+        for (int row = Rows - 1; row >= 0; row--)
         {
-            for (int col = 0; col < Columns; col ++)
+            for (int col = 0; col < Columns; col++)
             {
                 if (cells[row, col] == ' ')
                 {
                     return false;
                 }
 
-            }   
+            }
         }
         return true;
     }
@@ -386,7 +386,6 @@ class Game
 
     private Grid grid;
 
-    // Game state and player tracking variables
     private char currentPlayer;
     private int gameMode;
     private bool gameOver;
@@ -478,7 +477,7 @@ class Game
         return player1Out && player2Out;
     }
 
-    // Polymorpism: the current player decides how to take its turn
+    // Polymorphism: the current player decides how to take its turn
     public void Run()
     {
         while (!gameOver)
@@ -543,7 +542,14 @@ class Game
         }
         else
         {
-            return "Player 2";
+            if (gameMode == 2)
+            {
+                return "Computer";
+            }
+            else
+            {
+                return "Player 2";
+            }
         }
     }
 
@@ -628,7 +634,7 @@ class Game
                 Console.WriteLine("Choose a column number to drop a disc");
                 Console.WriteLine("Get enough discs in a row to win\n");
 
-                Console.WriteLine("DISC TYPES: ");
+                Console.WriteLine("DISC TYPES:");
                 Console.WriteLine("- O = Ordinary disc (standard drop)");
                 Console.WriteLine("- E = Exploding disc (removes surrounding discs on impact, then disappears)");
                 Console.WriteLine("- M = Magnetic disc (pulls the nearest matching disc upward after landing)\n");
