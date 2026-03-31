@@ -348,6 +348,38 @@ class Grid
     }
 }
 
+// Player subclasses define how a turn is taken in different game modes
+abstract class Player
+{
+    public char Symbol { get; protected set; }
+
+    protected Player(char symbol)
+    {
+        Symbol = symbol;
+    }
+
+    public abstract void TakeTurn(Game game);
+}
+
+class HumanPlayer : Player
+{
+    public HumanPlayer(char symbol) : base(symbol) { }
+
+    public override void TakeTurn(Game game)
+    {
+        game.HandleTurn();
+    }
+}
+
+class ComputerPlayer : Player
+{
+    public ComputerPlayer(char symbol) : base(symbol) { }
+
+    public override void TakeTurn(Game game)
+    {
+        game.MakeComputerMove();
+    }
+}
 class Game
 {
     private static readonly Random random = new Random();
@@ -358,6 +390,9 @@ class Game
     private char currentPlayer;
     private int gameMode;
     private bool gameOver;
+
+    private Player player1;
+    private Player player2;
 
     private int player1ExplodingUsed = 0;
     private int player1MagneticUsed = 0;
@@ -377,6 +412,17 @@ class Game
         gameMode = selectedGameMode;
         gameOver = false;
 
+        if (gameMode == 2)
+        {
+            player1 = new HumanPlayer('@');
+            player2 = new ComputerPlayer('#');
+        }
+        else
+        {
+            player1 = new HumanPlayer('@');
+            player2 = new HumanPlayer('#');
+        }
+
         int discsPerPlayer = (rows * columns) / 2;
         int specialDiscsPerPlayer = SPECIALS_PER_TYPE * IMPLEMENTED_SPECIAL_TYPES; 
         int ordinaryDiscsPerPlayer = discsPerPlayer - specialDiscsPerPlayer;
@@ -385,6 +431,15 @@ class Game
         player2OrdinaryLeft = ordinaryDiscsPerPlayer;
     }
 
+    private Player GetCurrentPlayerObject()
+    {
+        if (currentPlayer == '@')
+        {
+            return player1;
+        }
+
+        return player2;
+    }
     private void ApplyDiscUsage(char discType)
     {
         if (currentPlayer == '@')
@@ -423,33 +478,28 @@ class Game
         return player1Out && player2Out;
     }
 
+    // Polymorpism: the current player decides how to take its turn
     public void Run()
     {
         while (!gameOver)
         {
             Console.Clear();
             grid.Display();
-            Console.WriteLine($"\nTurn is {currentPlayer}\n");
+            Console.WriteLine($"\nTurn is {GetPlayerName()} ({currentPlayer})\n");
 
-            if (gameMode == 2 && currentPlayer == '#')
-            {
-                MakeComputerMove();
-            }
-            else
-            {
-                HandleTurn();
+            Player activePlayer = GetCurrentPlayerObject();
+            activePlayer.TakeTurn(this);
 
-                if (gameMode == 2 && currentPlayer == '@')
-                {
-                    Thread.Sleep(700);
-                }
+            if (gameMode == 2 && currentPlayer == '@')
+            {
+                Thread.Sleep(700);
             }
 
             if (grid.CheckWin(currentPlayer))
             {
                 Console.Clear();
                 grid.Display();
-                Console.WriteLine($"Player {currentPlayer} wins!");
+                Console.WriteLine($"{GetPlayerName()} wins!");
                 gameOver = true;
             }
             else if (grid.CheckDraw())
@@ -482,6 +532,18 @@ class Game
         else
         {
             currentPlayer = '@';
+        }
+    }
+
+    private string GetPlayerName()
+    {
+        if (currentPlayer == '@')
+        {
+            return "Player 1";
+        }
+        else
+        {
+            return "Player 2";
         }
     }
 
@@ -535,7 +597,7 @@ class Game
         return true;
     }
     // Handles one player's turn until a valid move is made
-    private void HandleTurn()
+    public void HandleTurn()
     {
         bool turnComplete = false;
 
@@ -554,19 +616,29 @@ class Game
             }
             else
             {
-                Console.WriteLine("Help Menu");
+                Console.Clear();
+                Console.WriteLine("Help Menu\n");
+
+                Console.WriteLine("OPTIONS:");
                 Console.WriteLine("1 = Make a move");
                 Console.WriteLine("2 = Save the current game");
-                Console.WriteLine("3 = View this help menu");
-                Console.WriteLine();
-                Console.WriteLine("How to play:");
-                Console.WriteLine("- Choose a column number to drop a disc");
-                Console.WriteLine("- O = Ordinary disc");
-                Console.WriteLine("- E = Exploding disc");
-                Console.WriteLine("- M = Magnetic disc");
-                Console.WriteLine("- Get enough discs in a row to win");
-                Console.WriteLine("- This version implements 2 special disc types: Exploding and Magnetic");
-                Console.WriteLine();
+                Console.WriteLine("3 = View this help menu\n");
+                
+                Console.WriteLine("HOW TO PLAY:");
+                Console.WriteLine("Choose a column number to drop a disc");
+                Console.WriteLine("Get enough discs in a row to win\n");
+
+                Console.WriteLine("DISC TYPES: ");
+                Console.WriteLine("- O = Ordinary disc (standard drop)");
+                Console.WriteLine("- E = Exploding disc (removes surrounding discs on impact, then disappears)");
+                Console.WriteLine("- M = Magnetic disc (pulls the nearest matching disc upward after landing)\n");
+
+                Console.WriteLine("Press any key to return...");
+                Console.ReadKey(true);
+
+                Console.Clear();
+                grid.Display();
+                Console.WriteLine($"\nTurn is {GetPlayerName()} ({currentPlayer})\n");
             }
         }
     }
@@ -684,7 +756,7 @@ class Game
 
             if (grid.CheckWin(currentPlayer))
             {
-                Console.WriteLine($"Player {currentPlayer} wins!");
+                Console.WriteLine($"{GetPlayerName()} wins!");
                 return;
             }
 
@@ -876,7 +948,7 @@ class Game
     }
 
     // Computer takes an immediate winning move if one exists; otherwise it picks a random legal move
-    private void MakeComputerMove()
+    public void MakeComputerMove()
     {
         List<int> validColumns = GetValidColumns();
 
