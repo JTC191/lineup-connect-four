@@ -636,8 +636,8 @@ class Game
 
                 Console.WriteLine("DISC TYPES:");
                 Console.WriteLine("- O = Ordinary disc (standard drop)");
-                Console.WriteLine("- E = Exploding disc (removes surrounding discs on impact, then disappears)");
-                Console.WriteLine("- M = Magnetic disc (pulls the nearest matching disc upward after landing)\n");
+                Console.WriteLine("- E = Exploding disc (2 per player: removes surrounding discs on impact, then disappears)");
+                Console.WriteLine("- M = Magnetic disc (2 per player: pulls the nearest matching disc upward after landing)\n");
 
                 Console.WriteLine("Press any key to return...");
                 Console.ReadKey(true);
