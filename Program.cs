@@ -580,7 +580,7 @@ class Game
 
             if (row == -1)
             {
-                Console.WriteLine("The column is full. Try again."\n);
+                Console.WriteLine("The column is full. Try again.\n");
             }
             else
             {
