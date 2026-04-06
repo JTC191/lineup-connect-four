@@ -835,6 +835,12 @@ class Game
                 continue;
             }
 
+            if (input == "B")
+            {
+                Console.WriteLine("Boring disc is not implemented in this version.\n");
+                continue;
+            }
+
             Console.WriteLine("Invalid disc type.\n");
         }
     }
