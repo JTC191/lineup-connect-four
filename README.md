@@ -2,9 +2,19 @@
 
 A console-based strategy game inspired by Connect Four, developed in C# using object-oriented programming principles.
 
+**Academic Context**
+
+Developed for QUT's Object-Oriented Design and Development unit.
+Result: 14.5/15
+
 **Overview**
 
 This project was developed as part of a university assignment to apply object-oriented design and implement a complete interactive system.
+
+**Screenshot**
+
+<img width="315" height="389" alt="image" src="https://github.com/user-attachments/assets/e02fe5dd-17ae-4ede-85fe-98a8581b17d3" />
+
 
 **Features**
 
@@ -14,7 +24,8 @@ This project was developed as part of a university assignment to apply object-or
   - Magnetic discs (shift discs within a column)
 - Save and load functionality using file I/O  
 - Testing mode for validating game scenarios  
-- Dynamic win condition based on grid size  
+- Dynamic win condition based on grid size
+- Computer opponent checks for an immediate winning move before selecting a random legal move
 
 **Technologies Used**
 
@@ -26,7 +37,7 @@ This project was developed as part of a university assignment to apply object-or
   - Abstraction
 - File I/O for saving and loading game state  
 
-**Project Structure**
+**Core Components**
 
 - `Game` – controls game flow, player turns, and logic  
 - `Grid` – manages board state, win conditions, and mechanics  
@@ -43,9 +54,22 @@ This project was developed as part of a university assignment to apply object-or
 
 **How to Run**
 
-1. Open the project in Visual Studio  
-2. Build and run the solution  
-3. Follow the console prompts to start a new game or load a saved game  
+1. Clone or download the repository
+2. Open the solution in Visual Studio  
+3. Build and run the project  
+4. Follow the console prompts to start or load a game
+
+**Testing Mode**
+
+Testing mode accepts comma-separated moves consisting of a disc type and column number.
+
+Example:
+
+`O1, O2, E3, M4`
+
+- 'O' - ordinary disc
+- 'E' - exploding disc
+- 'M' - magnetic disc
 
 **Future Improvements**
 
