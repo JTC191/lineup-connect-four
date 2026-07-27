@@ -13,7 +13,7 @@ This project was developed as part of a university assignment to apply object-or
 
 **Screenshot**
 
-<img width="315" height="389" alt="image" src="https://github.com/user-attachments/assets/e02fe5dd-17ae-4ede-85fe-98a8581b17d3" />
+![LineUp gameplay showing the board and available disc types](lineup-gameplay.png)
 
 
 **Features**
